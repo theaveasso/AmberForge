@@ -2,8 +2,6 @@
 
 #include <assert.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <time.h>
 
 /// @def AFAPI
 /// Export/import macro for symbols in the AmberForge engine.
@@ -90,3 +88,6 @@ struct AFgame_config {
     uint32_t width;
     uint32_t height;
 };
+
+typedef struct AFarena AFarena;
+AFAPI char *afioReadFile(const char *path, AFarena *a);

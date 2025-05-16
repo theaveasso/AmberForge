@@ -1,6 +1,8 @@
 #pragma once
 
 #include "amber_forge.h"
+#include <stdio.h>
+#include <time.h>
 
 typedef struct AFlog_event AFlog_event;
 struct AFlog_event {
@@ -28,8 +30,9 @@ typedef enum AFlog_level
 } AFlog_level;
 
 void log_set_lock(AFlock_fn fn, void *data);
-void log_set_level(int level);
+void afLogSetLevel(int level);
 void log_set_quite(bool enable);
+
 int log_add_callback(AFlog_fn fn, void *data, int level);
 int log_add_fp(FILE *fp, int level);
 

@@ -1,5 +1,8 @@
 #include "af_engine.h"
+
+#include "af_glrenderer.h"
 #include "af_memory.h"
+#include "af_window.h"
 
 #include <GLFW/glfw3.h>
 
@@ -17,7 +20,7 @@ GlobalVariable char ctx_buf[64 * 1024 * 1024];
 GlobalVariable AFapp_ctx app_ctx = {};
 GlobalVariable AFarena ctx_arena;
 
-AF_INLINE Internal bool afEngineInit(AFgame_config *config);
+AF_INLINE Internal void afEngineInit(const AFgame_config *config);
 AF_INLINE Internal void afEngineRunAll();
 AF_INLINE Internal void afEngineFini();
 
@@ -55,48 +58,43 @@ AFAPI bool afLayerAttach(AFapp_layer *layer) {
 void afLayerDetach(void *user_data) {
 }
 
-void afEngineRun(AFgame_config *config) {
-    if (!afEngineInit(config))
-    {
-        AFINFO("failed to initialize engine (afEngineInit)");
-        return;
-    }
+AFAPI AFapp_layer *afLayerGet(uint32_t layer_id) {
+    return app_ctx.layers[layer_id];
+}
+
+void afEngineRun(const AFgame_config *config) {
+    afEngineInit(config);
 
     afEngineRunAll();
     afEngineFini();
 }
 
-bool afEngineInit(AFgame_config *config) {
+void afEngineInit(const AFgame_config *config) {
     afArenaInit(&ctx_arena, ctx_buf, sizeof(ctx_arena));
     *app_ctx.layers = afArenaAlloc(&ctx_arena, sizeof(AFapp_layer) * AF_MAX_LAYERS);
 
-    if (!glfwInit())
-    {
-        return false;
-    }
+    app_ctx.window = afWindowInit((int) config->width, (int) config->height, config->title);
+    afGLRendererInit(config->width, config->height);
 
-    app_ctx.window = glfwCreateWindow((int) config->width, (int) config->height, config->title, NULL, NULL);
-    if (!app_ctx.window)
-    {
-        return false;
-    }
-
-    return true;
+    glfwSwapInterval(1);
 }
 
 void afEngineRunAll() {
     while (!glfwWindowShouldClose(app_ctx.window))
     {
         glfwPollEvents();
-        for (uint32_t i = 0; i < app_ctx.layer_count; ++i)
-        {
-            app_ctx.layers[i]->on_update(app_ctx.layers[i]);
-        }
+        glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        // afGLNewFrame();
+        // afGLEndFrame();
+        afGLPresent();
+        glfwSwapBuffers(app_ctx.window);
     }
 }
 
 void afEngineFini() {
-    glfwDestroyWindow(app_ctx.window);
+    afGLRendererFini();
+    afWindowFini(app_ctx.window);
     glfwTerminate();
     afArenaFree_all(&ctx_arena);
 }

@@ -84,11 +84,11 @@ void log_set_lock(AFlock_fn fn, void *data) {
     L.data = data;
 }
 
-void log_set_level(int level) {
+void afLogSetLevel(const int level) {
     L.level = level;
 }
 
-void log_set_quite(bool enable) {
+void log_set_quite(const bool enable) {
     L.quiet = enable;
 }
 

@@ -39,4 +39,4 @@ AFAPI bool afLayerAttach(AFapp_layer *layer);
 AFAPI void afLayerDetach(void *user_data);
 AFAPI AFapp_layer *afLayerGet(uint32_t layer_id);
 
-AFAPI void afEngineRun(AFgame_config *config);
+AFAPI void afEngineRun(const AFgame_config *config);

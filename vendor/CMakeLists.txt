@@ -16,8 +16,9 @@ macro(fetch_dep dep repo tag)
                 GIT_TAG ${tag}
         )
         FetchContent_MakeAvailable(${dep})
-    endif()
+    endif ()
 endmacro()
 
 fetch_dep(glfw https://github.com/glfw/glfw.git 3.4)
 fetch_dep(glad https://github.com/theaveasso/glad.git main)
+fetch_dep(cglm https://github.com/recp/cglm.git v0.9.6)

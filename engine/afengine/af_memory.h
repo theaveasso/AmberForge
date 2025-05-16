@@ -2,6 +2,8 @@
 
 #include "amber_forge.h"
 
+#include <stddef.h>
+
 typedef struct AFarena AFarena;
 struct AFarena {
     unsigned char *buf;
