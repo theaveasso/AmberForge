@@ -1,4 +1,4 @@
-#include "af_core.h"
+#include "af_log.h"
 
 #include <stdarg.h>
 #include <time.h>
@@ -108,7 +108,7 @@ int log_add_fp(FILE *fp, int level) {
     return log_add_callback(file_callback, fp, level);
 }
 
-void cel_log(int level, const char *file, int line, const char *fmt, ...) {
+void afLog(int level, const char *file, int line, const char *fmt, ...) {
     AFlog_event event = (AFlog_event){.fmt = fmt, .file = file, .line = line, .level = level};
 
     lock();
