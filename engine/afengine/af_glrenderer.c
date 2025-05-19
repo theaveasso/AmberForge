@@ -1,6 +1,13 @@
 #include "af_glrenderer.h"
 #include "af_memory.h"
 
+GlobalVariable const vec3 AF_WORLD_UP       = {0.0f, 1.0f, 0.0f};
+GlobalVariable const vec3 AF_WORLD_DOWN     = {0.0f, -1.0f, 0.0f};
+GlobalVariable const vec3 AF_WORLD_LEFT     = {-1.0f, 0.0f, 0.0f};
+GlobalVariable const vec3 AF_WORLD_RIGHT    = {1.0f, 0.0f, 0.0f};
+GlobalVariable const vec3 AF_WORLD_FORWARD  = {0.0f, 0.0f, -1.0f};
+GlobalVariable const vec3 AF_WORLD_BACKWARD = {0.0f, 0.0f, 1.0f};
+
 // clang-format off
 #include <glad/gl.h>
 #include "GLFW/glfw3.h"
@@ -8,10 +15,14 @@
 
 #include "af_log.h"
 #include "amber_forge.h"
+#include "cglm/cam.h"
+#include "cglm/euler.h"
 
 #define AF_MAX_PROGRAM_COUNT 72
 #define AF_MAX_FRAMEBUFFER_COUNT 1024
 #define AF_MAX_MESH_COUNT 25000
+
+GlobalVariable AFcamera3d *camera;
 
 GlobalVariable char renderer_buf[64 * 1024 * 1024];
 
@@ -27,14 +38,15 @@ uint32_t mesh2d_count;
 GlobalVariable AFgl_mesh meshes3d[AF_MAX_MESH_COUNT];
 uint32_t mesh3d_count;
 
-AF_INLINE Internal GLuint afglShaderBuild(const char *src, uint32_t type);
-AF_INLINE Internal GLuint afglProgramLink(GLuint vert, GLuint frag);
+Internal AF_INLINE GLuint afglShaderBuild(const char *src, uint32_t type);
+Internal AF_INLINE GLuint afglProgramLink(GLuint vert, GLuint frag);
+Internal AF_INLINE void afglProgramSetCamera(const AFgl_program *program, const AFtransform3d *transform);
 
-AF_INLINE Internal void afglColorAttachmentCreate(AFgl_frame_buffer *buffer);
-AF_INLINE Internal void afglDepthAttachmentCreate(AFgl_frame_buffer *buffer);
+Internal AF_INLINE void afglColorAttachmentCreate(AFgl_frame_buffer *buffer);
+Internal AF_INLINE void afglDepthAttachmentCreate(AFgl_frame_buffer *buffer);
 
-AF_INLINE Internal void afglMeshDraw(const AFgl_mesh *mesh, uint32_t mode);
-AF_INLINE Internal AFgl_mesh *afglMeshGet(uint32_t mesh_type, uint32_t mesh_handle);
+Internal AF_INLINE void afglMeshDraw(const AFgl_mesh *mesh, uint32_t mode);
+Internal AF_INLINE AFgl_mesh *afglMeshGet(uint32_t mesh_type, uint32_t mesh_handle);
 
 typedef struct AFgl_renderer_ctx AFgl_renderer_ctx;
 struct AFgl_renderer_ctx {
@@ -57,6 +69,9 @@ uint32_t afProgramInit(const char *vert_path, const char *frag_path) {
     const uint32_t handle = program_count++;
     AFgl_program program  = {};
     program.program_id    = afglProgramLink(vert, frag);
+    program.model         = glGetUniformLocation(program.program_id, "u_model");
+    program.view          = glGetUniformLocation(program.program_id, "u_view");
+    program.proj          = glGetUniformLocation(program.program_id, "u_proj");
 
     programs[handle] = program;
 
@@ -192,10 +207,16 @@ void afGLRendererInit(const uint32_t width, const uint32_t height) {
     renderer_ctx.program_present = afProgramInit("resources/shaders/builtin.present.vert.glsl", "resources/shaders/builtin.present.frag.glsl");
     AFgl_program *program        = &programs[renderer_ctx.program_present];
     program->mesh_id             = afQuadMesh2dCreate();
+
+    afCameraInit((float) width / (float) height);
 }
 
 void afGLRendererFini() {
     afFrameBufferFini(renderer_ctx.fbo_handle);
+}
+
+void afGLRendererSetCamera(const uint32_t program_handle, AFtransform3d *transform) {
+    AFgl_program *program = &(programs[program_handle]);
 }
 
 void afGLNewFrame() {
@@ -229,7 +250,7 @@ AFAPI void afGLPresent() {
 }
 
 GLuint afglShaderBuild(const char *src, const uint32_t type) {
-    GLuint shader_id = glCreateShader(type);
+    const GLuint shader_id = glCreateShader(type);
     glShaderSource(shader_id, 1, &src, NULL);
     glCompileShader(shader_id);
 
@@ -246,7 +267,7 @@ GLuint afglShaderBuild(const char *src, const uint32_t type) {
     return shader_id;
 }
 
-GLuint afglProgramLink(GLuint vert, GLuint frag) {
+GLuint afglProgramLink(const GLuint vert, const GLuint frag) {
     const GLuint program_id = glCreateProgram();
     glAttachShader(program_id, vert);
     glAttachShader(program_id, frag);
@@ -265,6 +286,15 @@ GLuint afglProgramLink(GLuint vert, GLuint frag) {
     glDeleteShader(vert);
     glDeleteShader(frag);
     return program_id;
+}
+
+Internal AF_INLINE void afglProgramSetCamera(const AFgl_program *program, const AFtransform3d *transform) {
+    mat4 view, proj;
+    afCameraView(transform, view);
+    afCameraProj(proj);
+
+    glUniformMatrix4fv((GLint) program->proj, 1, GL_FALSE, (const float *) proj);
+    glUniformMatrix4fv((GLint) program->view, 1, GL_FALSE, (const float *) view);
 }
 
 void afglColorAttachmentCreate(AFgl_frame_buffer *buffer) {
@@ -369,4 +399,38 @@ uint32_t afQuadMesh3dCreate() {
     const uint32_t handle = mesh3d_count++;
     meshes3d[handle]      = mesh;
     return handle;
+}
+
+void afCameraInit(const float aspect_ratio) {
+    camera               = afArenaAlloc(&renderer_arena, sizeof(AFcamera3d));
+    camera->fov          = 45.0f;
+    camera->aspect_ratio = aspect_ratio;
+    camera->near_plane   = 0.1f;
+    camera->far_plane    = 1000.0f;
+}
+
+void afCameraFrustum(const AFtransform3d *transform, mat4 out) {
+    mat4 view, proj;
+    afCameraView(transform, view);
+    afCameraProj(proj);
+    return glm_mat4_mul(proj, view, out);
+}
+
+void afCameraView(const AFtransform3d *transform, mat4 out) {
+    mat4 rotation;
+
+    vec3 target = {0.0f, 1.0f, 0.0f};
+    vec3 rot_rad;
+    glm_vec3_copy(transform->rotation, rot_rad);
+    glm_vec3_scale(rot_rad, GLM_PI / 180.0f, rot_rad);
+    glm_euler_xyz(rot_rad, rotation);
+
+    glm_mat4_mulv3(rotation, AF_WORLD_FORWARD, 1.0f, target);
+    glm_vec3_add(transform->translate, target, target);
+
+    glm_lookat(transform->translate, target, AF_WORLD_UP, out);
+}
+
+void afCameraProj(mat4 out) {
+    glm_perspective(camera->fov, camera->aspect_ratio, camera->near_plane, camera->far_plane, out);
 }

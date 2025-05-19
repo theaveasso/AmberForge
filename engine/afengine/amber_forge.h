@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include <cglm/vec3.h>
+
 /// @def AFAPI
 /// Export/import macro for symbols in the AmberForge engine.
 /// Use `-DAF_EXPORT` when building the shared library.

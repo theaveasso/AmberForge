@@ -24,44 +24,6 @@ AF_INLINE Internal void afEngineInit(const AFgame_config *config);
 AF_INLINE Internal void afEngineRunAll();
 AF_INLINE Internal void afEngineFini();
 
-AFAPI AFapp_layer *afLayerCreate(AFtype_id type_id, void *user_data) {
-    if (afLayerGet(type_id))
-    {
-        AFERROR("layer already exists: %u", type_id);
-        return NULL;
-    }
-
-    AFapp_layer *layer = afArenaAlloc(&ctx_arena, sizeof(AFapp_layer));
-    if (!layer) { return NULL; }
-
-    layer->layer_id  = type_id;
-    layer->ctx       = &app_ctx;
-    layer->user_data = user_data;
-
-    return layer;
-}
-
-AFAPI bool afLayerAttach(AFapp_layer *layer) {
-    if (!layer) { return false; }
-    if (afLayerGet(layer->layer_id))
-    {
-        AFERROR("layer already exists: %u", layer->layer_id);
-        return false;
-    }
-
-    app_ctx.layers[app_ctx.layer_count++] = layer;
-    if (layer->on_init) { layer->on_init(layer); }
-
-    return true;
-}
-
-void afLayerDetach(void *user_data) {
-}
-
-AFAPI AFapp_layer *afLayerGet(uint32_t layer_id) {
-    return app_ctx.layers[layer_id];
-}
-
 void afEngineRun(const AFgame_config *config) {
     afEngineInit(config);
 
