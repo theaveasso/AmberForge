@@ -74,6 +74,8 @@ void afEngineInit(const AFgame_config *config) {
     *app_ctx.layers = afArenaAlloc(&ctx_arena, sizeof(AFapp_layer) * AF_MAX_LAYERS);
 
     app_ctx.window = afWindowInit((int) config->width, (int) config->height, config->title);
+
+    afInputInit(app_ctx.window, &ctx_arena);
     afGLRendererInit(config->width, config->height);
 
     glfwSwapInterval(1);
@@ -83,6 +85,9 @@ void afEngineRunAll() {
     while (!glfwWindowShouldClose(app_ctx.window))
     {
         glfwPollEvents();
+
+        if (afInputKeyPress(app_ctx.window, AF_KEY_CODE_ESCAPE)) { glfwSetWindowShouldClose(app_ctx.window, GLFW_TRUE); }
+
         glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         // afGLNewFrame();

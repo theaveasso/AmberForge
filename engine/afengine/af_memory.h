@@ -21,7 +21,6 @@ AFAPI void *arena_resize(AFarena *a, void *oldmem, size_t osize, size_t nsize);
 AFAPI void *arena_resize_align(AFarena *a, void *oldmem, size_t osize, size_t nsize, size_t align);
 AFAPI void arena_free(AFarena *a, void *ptr);
 AFAPI void arena_free_all(AFarena *a);
-AFAPI void arena_debug_print(AFarena *a, const char *label);
 
 #define afArenaInit(a, backing_buffer, backing_buffer_len) arena_init(a, backing_buffer, backing_buffer_len)
 #define afArenaAlloc(a, len) arena_alloc(a, len)

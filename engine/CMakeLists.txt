@@ -5,6 +5,7 @@ find_package(OpenGL REQUIRED)
 add_library(${PROJECT_NAME} SHARED
         afengine/af_log.c
         afengine/af_engine.c
+        afengine/af_mathf.h
         afengine/af_memory.c
         afengine/af_window.c
         afengine/af_glrenderer.c
