@@ -83,6 +83,7 @@ typedef unsigned char bool;
 
 #define GlobalVariable static
 #define Internal static
+#define Persistent static
 
 typedef struct AFgame_config AFgame_config;
 struct AFgame_config {

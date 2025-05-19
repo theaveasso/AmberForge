@@ -9,11 +9,15 @@ add_library(${PROJECT_NAME} SHARED
         afengine/af_memory.c
         afengine/af_window.c
         afengine/af_glrenderer.c
-        afengine/amber_forge.c)
+        afengine/amber_forge.c
+        afengine/af_ecs_component.c
+        afengine/af_ecs_component.h
+        afengine/af_ecs_system.c
+        afengine/af_ecs_system.h)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DAF_EXPORT -DGL_SILENCE_DEPRECATION _DEBUG)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw glad OpenGL::GL cglm)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw glad OpenGL::GL cglm flecs)
 
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/resources")
 set(DEST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources")

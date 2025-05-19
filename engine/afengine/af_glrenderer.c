@@ -1,4 +1,5 @@
 #include "af_glrenderer.h"
+#include "af_ecs_component.h"
 #include "af_memory.h"
 
 GlobalVariable const vec3 AF_WORLD_UP       = {0.0f, 1.0f, 0.0f};
@@ -48,14 +49,7 @@ Internal AF_INLINE void afglDepthAttachmentCreate(AFgl_frame_buffer *buffer);
 Internal AF_INLINE void afglMeshDraw(const AFgl_mesh *mesh, uint32_t mode);
 Internal AF_INLINE AFgl_mesh *afglMeshGet(uint32_t mesh_type, uint32_t mesh_handle);
 
-typedef struct AFgl_renderer_ctx AFgl_renderer_ctx;
-struct AFgl_renderer_ctx {
-    uint32_t fbo_handle;
-    uint32_t program_forward;
-    uint32_t program_present;
-};
-
-GlobalVariable AFgl_renderer_ctx renderer_ctx = {};
+GlobalVariable AFgl_renderer_ctx *renderer_ctx = NULL;
 GlobalVariable AFarena renderer_arena;
 
 uint32_t afProgramInit(const char *vert_path, const char *frag_path) {
@@ -198,29 +192,31 @@ void afMesh3dDraw(const uint32_t mesh_handle, const uint32_t mode) {
 
 void afGLRendererInit(const uint32_t width, const uint32_t height) {
     afArenaInit(&renderer_arena, renderer_buf, sizeof(renderer_buf));
+    renderer_ctx = afArenaAlloc(&renderer_arena, sizeof(AFgl_renderer_ctx));
 
     gladLoadGL(glfwGetProcAddress);
 
-    renderer_ctx.fbo_handle      = afFrameBufferInit(width, height);
-    renderer_ctx.program_forward = afProgramInit("resources/shaders/builtin.vert.glsl", "resources/shaders/builtin.frag.glsl");
+    renderer_ctx->fbo_handle      = afFrameBufferInit(width, height);
+    renderer_ctx->program_forward = afProgramInit("resources/shaders/builtin.vert.glsl", "resources/shaders/builtin.frag.glsl");
 
-    renderer_ctx.program_present = afProgramInit("resources/shaders/builtin.present.vert.glsl", "resources/shaders/builtin.present.frag.glsl");
-    AFgl_program *program        = &programs[renderer_ctx.program_present];
-    program->mesh_id             = afQuadMesh2dCreate();
+    renderer_ctx->program_present = afProgramInit("resources/shaders/builtin.present.vert.glsl", "resources/shaders/builtin.present.frag.glsl");
+    AFgl_program *program         = &programs[renderer_ctx->program_present];
+    program->mesh_id              = afQuadMesh2dCreate();
 
     afCameraInit((float) width / (float) height);
 }
 
 void afGLRendererFini() {
-    afFrameBufferFini(renderer_ctx.fbo_handle);
+    afFrameBufferFini(renderer_ctx->fbo_handle);
 }
 
 void afGLRendererSetCamera(const uint32_t program_handle, AFtransform3d *transform) {
-    AFgl_program *program = &(programs[program_handle]);
+    const AFgl_program *program = &(programs[program_handle]);
+    afglProgramSetCamera(program, transform);
 }
 
 void afGLNewFrame() {
-    AFgl_frame_buffer *buffer = &buffers[renderer_ctx.fbo_handle];
+    AFgl_frame_buffer *buffer = &buffers[renderer_ctx->fbo_handle];
     if (!buffer) { return; }
     glBindFramebuffer(GL_FRAMEBUFFER, buffer->buffer_id);
     glViewport(0, 0, (int) buffer->width, (int) buffer->height);
@@ -236,7 +232,7 @@ void afGLEndFrame() {
 }
 
 AFAPI void afGLPresent() {
-    AFgl_program *program = &programs[renderer_ctx.program_present];
+    AFgl_program *program = &programs[renderer_ctx->program_present];
     if (!program) { return; }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -413,10 +409,10 @@ void afCameraFrustum(const AFtransform3d *transform, mat4 out) {
     mat4 view, proj;
     afCameraView(transform, view);
     afCameraProj(proj);
-    return glm_mat4_mul(proj, view, out);
+    glm_mat4_mul(proj, view, out);
 }
 
-void afCameraView(const AFtransform3d *transform, mat4 out) {
+void afCameraView(AFtransform3d *transform, mat4 out) {
     mat4 rotation;
 
     vec3 target = {0.0f, 1.0f, 0.0f};

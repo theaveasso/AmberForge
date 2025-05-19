@@ -15,10 +15,6 @@ typedef struct AFgl_vertex AFgl_vertex;
 typedef struct AFgl_mesh_data AFgl_mesh_data;
 typedef struct AFgl_mesh AFgl_mesh;
 
-typedef struct AFtransform3d AFtransform3d;
-
-typedef struct AFcamera3d AFcamera3d;
-
 typedef enum
 {
     AFGL_MESH_TYPE_2D,
@@ -71,19 +67,6 @@ struct AFgl_program {
     uint32_t proj;
 };
 
-struct AFtransform3d {
-    vec3 translate;
-    vec3 rotation;
-    vec3 scale;
-};
-
-struct AFcamera3d {
-    float near_plane;
-    float far_plane;
-    float fov;
-    float aspect_ratio;
-};
-
 AFAPI uint32_t afProgramInit(const char *vert_path, const char *frag_path);
 AFAPI void afProgramFini(uint32_t program_handle);
 AFAPI void afProgramBind(uint32_t program_handle);
@@ -99,7 +82,7 @@ void afMesh3dDraw(uint32_t mesh_handle, uint32_t mode);
 
 void afGLRendererInit(uint32_t width, uint32_t height);
 void afGLRendererFini();
-void afGLRendererSetCamera(uint32_t program_handle, AFtransform3d *transform);
+void afGLRendererSetCamera(uint32_t program_handle, struct AFtransform3d *transform);
 
 AFAPI void afGLNewFrame();
 AFAPI void afGLEndFrame();
@@ -108,8 +91,17 @@ AFAPI void afGLPresent();
 AFAPI uint32_t afQuadMesh2dCreate();
 AFAPI uint32_t afQuadMesh3dCreate();
 
-extern AFcamera3d *camera;
+extern struct AFcamera3d *camera;
 AFAPI void afCameraInit(float aspect_ratio);
-AFAPI void afCameraFrustum(const AFtransform3d *transform, mat4 out);
-AFAPI void afCameraView(const AFtransform3d *transform, mat4 out);
+AFAPI void afCameraFrustum(const struct AFtransform3d *transform, mat4 out);
+AFAPI void afCameraView(const struct AFtransform3d *transform, mat4 out);
 AFAPI void afCameraProj(mat4 out);
+
+typedef struct AFgl_renderer_ctx AFgl_renderer_ctx;
+struct AFgl_renderer_ctx {
+    uint32_t fbo_handle;
+    uint32_t program_forward;
+    uint32_t program_present;
+};
+
+AFAPI extern AFgl_renderer_ctx *renderer_ctx;

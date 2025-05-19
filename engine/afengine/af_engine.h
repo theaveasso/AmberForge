@@ -2,6 +2,8 @@
 
 #include "amber_forge.h"
 
+#include <flecs.h>
+
 typedef struct AFapp_ctx AFapp_ctx;
 
 typedef struct AFapp_layer AFapp_layer;
@@ -20,5 +22,7 @@ struct AFapp_layer {
 
     void *user_data;
 };
+
+extern ecs_world_t *app_world;
 
 AFAPI void afEngineRun(const AFgame_config *config);
